@@ -1,0 +1,24 @@
+seleniumhub:
+  image: selenium/hub:latest
+  ports:
+    - 4444:4444
+  environment:
+    - no_proxy=localhost
+
+firefoxnode:
+  image: selenium/node-firefox-debug
+  ports:
+    - 5900
+  links:
+    - seleniumhub:hub
+  environment:
+    - no_proxy=localhost
+
+chromenode:
+  image: selenium/node-chrome-debug
+  ports:
+    - 5900
+  links:
+    - seleniumhub:hub
+  environment:
+    - no_proxy=localhost
