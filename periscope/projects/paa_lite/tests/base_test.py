@@ -10,7 +10,7 @@ class BaseTest(unittest.TestCase):
         webdriver_config = WebdriverConfig()
         hub_url = webdriver_config.hub_url()
         browser = webdriver_config.browser()
-        print browser
+
         if browser == "firefox":
             capability = webdriver.DesiredCapabilities.FIREFOX
         elif browser == "chrome":

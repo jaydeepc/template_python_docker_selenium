@@ -21,3 +21,4 @@ class OpportunityTests(BaseTest):
         elem.send_keys("asdadsadsadas")
         elem.send_keys(Keys.RETURN)
         assert "JD" not in driver.page_source
+        assert 1==2
