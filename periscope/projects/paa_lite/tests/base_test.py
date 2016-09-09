@@ -9,9 +9,16 @@ class BaseTest(unittest.TestCase):
     def setUpClass(cls):
         webdriver_config = WebdriverConfig()
         hub_url = webdriver_config.hub_url()
-        capability = webdriver.DesiredCapabilities.FIREFOX
+        browser = webdriver_config.browser()
+        print browser
+        if browser == "firefox":
+            capability = webdriver.DesiredCapabilities.FIREFOX
+        elif browser == "chrome":
+            capability = webdriver.DesiredCapabilities.CHROME
+        else:
+            raise Exception("Browser is not accepted")
+
         cls.driver = webdriver.Remote(hub_url, capability)
-        print cls.driver
 
     @classmethod
     def tearDownClass(cls):

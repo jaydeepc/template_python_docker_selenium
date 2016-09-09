@@ -9,6 +9,6 @@ class BaseConfig(object):
             config = ConfigParser.ConfigParser()
             config.read(cfg_file)
         else:
-            print ("Config file is not found.")
+            raise Exception("Config file is not found.")
         return config
 
