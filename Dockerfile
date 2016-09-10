@@ -75,4 +75,6 @@ RUN cd /usr/local/bin \
 	&& ln -s python3 python \
 	&& ln -s python3-config python-config
 
+RUN pip3 install selenium pytest fabric pytest-json pytest-html
+
 CMD ["python3"]
