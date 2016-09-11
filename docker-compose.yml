@@ -22,3 +22,12 @@ chromenode:
     - seleniumhub:hub
   environment:
     - no_proxy=localhost
+
+functionaltest:
+  image: deathbypython/python-with-selenium
+  links:
+   - seleniumhub:localhost
+  container_name: tests
+  volumes:
+   - .:/home
+  command: bash -c "cd home && fab run_tests_in_parallel_in_chrome:2"
