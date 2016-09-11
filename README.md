@@ -38,7 +38,11 @@ docker-compose scale chromenode=3
 To view the test running within the container, open the vnc_dash.html in Chrome and input the below host and address.
 
 VNC Dash:
-[![ScreenShot](https://github.com/jaydeepc/template_python_docker_selenium/blob/master/vnc.png))]
+[![ScreenShot](https://github.com/jaydeepc/template_python_docker_selenium/blob/master/vnc.png)]
+
+Incase you see the VNC host window stuck on "loading" , uncheck this:
+[![ScreenShot](https://github.com/jaydeepc/template_python_docker_selenium/blob/master/wa.png)]
+
 
 $ docker port <container-name|container-id> 5900
 0.0.0.0:49338
