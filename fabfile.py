@@ -1,5 +1,5 @@
 from fabric.api import *
-from periscope.common_config.base_config import BaseConfig
+from periscope.config.base_config import BaseConfig
 import os
 
 project_parent_dir = "periscope"

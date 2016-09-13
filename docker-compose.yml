@@ -30,4 +30,4 @@ functionaltest:
   container_name: tests
   volumes:
    - .:/home
-  command: bash -c "cd home && fab run_tests_in_parallel_in_chrome:2"
+  command: bash -c "cd home && fab run_tests_in_parallel_in_chrome:${THREADS}"

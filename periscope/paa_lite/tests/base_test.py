@@ -1,6 +1,9 @@
 import unittest
+
 from selenium import webdriver
-from periscope.common_config.config import WebdriverConfig
+
+from periscope.config.config import WebdriverConfig
+from periscope.paa_lite import BasePage
 
 
 class BaseTest(unittest.TestCase):
@@ -19,6 +22,7 @@ class BaseTest(unittest.TestCase):
             raise Exception("Browser is not accepted")
 
         cls.driver = webdriver.Remote(hub_url, capability)
+        cls.base_page = BasePage(cls.driver, "http://52.2.223.255")
 
     @classmethod
     def tearDownClass(cls):
