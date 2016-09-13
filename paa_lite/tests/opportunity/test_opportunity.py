@@ -1,4 +1,4 @@
-from periscope.paa_lite import BaseTest
+from paa_lite import BaseTest
 
 
 class OpportunityTests(BaseTest):

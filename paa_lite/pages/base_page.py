@@ -1,6 +1,6 @@
 import unittest
 
-from periscope.paa_lite import OpportunityPage
+from paa_lite import OpportunityPage
 
 
 class BasePage(unittest.TestCase):

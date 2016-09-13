@@ -1,6 +1,8 @@
-from fabric.api import *
-from periscope.config.base_config import BaseConfig
 import os
+
+from fabric.api import *
+
+from paa_lite.config.base_config import BaseConfig
 
 project_parent_dir = "periscope"
 current_dir = os.getcwd()
