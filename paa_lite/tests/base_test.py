@@ -1,9 +1,9 @@
 import unittest
 
-from periscope.paa_lite import BasePage
+from paa_lite.paa_lite_pages.base_page import BasePage
 from selenium import webdriver
 
-from paa_lite.config import WebdriverConfig
+from paa_lite.config.config import WebdriverConfig
 
 
 class BaseTest(unittest.TestCase):

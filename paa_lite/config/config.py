@@ -5,9 +5,9 @@ class WebdriverConfig(BaseConfig):
 
     def __init__(self):
         self.SECTION="WEBDRIVER"
-        project_parent_dir = "periscope"
+        project_parent_dir = "paa_lite"
         current_dir = os.getcwd()
-        config_path = "{0}/{1}/common_config/common.properties".format(current_dir, project_parent_dir)
+        config_path = "{0}/{1}/config/common.properties".format(current_dir, project_parent_dir)
         self.config = self.read_config(config_path)
 
     def hub_url(self):

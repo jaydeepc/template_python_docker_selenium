@@ -1,6 +1,6 @@
 import unittest
 
-from paa_lite import OpportunityPage
+import opportunity_page
 
 
 class BasePage(unittest.TestCase):
@@ -11,4 +11,4 @@ class BasePage(unittest.TestCase):
 
     def navigate_to_home(self):
         self.driver.get(self.base_url)
-        return OpportunityPage()
+        return opportunity_page.OpportunityPage()
