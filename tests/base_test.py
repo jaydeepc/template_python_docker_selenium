@@ -1,9 +1,9 @@
 import unittest
 
-from paa_lite.paa_lite_pages.base_page import BasePage
 from selenium import webdriver
+from your_project.functions.base_page import BasePage
 
-from paa_lite.config.config import WebdriverConfig
+from functions.functions import WebdriverConfig
 
 
 class BaseTest(unittest.TestCase):

@@ -5,12 +5,12 @@ import os
 # Post-install engine configuration
 def _post_install(dir):
 
-    is_cmd_running = os.system('toilet -f bigmono9 -F gay Periscope Functions Installed -t')
+    is_cmd_running = os.system('toilet -f bigmono9 -F gay Functions Installed -t')
     if is_cmd_running !=0:
        print (
            "\n\n\n************************************\n\n\n"
-           "Periscope Functions Installed!\n"
-           "You can now use them after 'import periscope_common'"
+           "Functions Installed!\n"
+           "You can now use them after 'import <name>'"
            "\n\n\n************************************\n\n\n"
        )
 
@@ -24,11 +24,11 @@ class install(_install):
 
 
 # Normal setup stuff
-setup(name='periscope',
+setup(name='name',
       version='0.1',
-      description='The funniest joke in the world',
+      description='Functions used by the tests',
       author='JD',
       author_email='jaydeepc@thuoghtworks.com',
-      packages=['periscope_common'],
+      packages=['name'],
       cmdclass={'install': install},
       zip_safe=False)

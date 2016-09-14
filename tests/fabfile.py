@@ -2,7 +2,7 @@ import os
 
 from fabric.api import *
 
-from paa_lite.config.base_config import BaseConfig
+from functions.functions.config.base_config import BaseConfig
 
 project_parent_dir = "paa_lite"
 current_dir = os.getcwd()
