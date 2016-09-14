@@ -29,5 +29,5 @@ functionaltest:
    - seleniumhub:localhost
   container_name: tests
   volumes:
-   - .:/home
-  command: bash -c "cd home && fab run_tests_in_parallel_in_chrome:${THREADS}"
+   - ..:/home
+  command: bash -c "cd home && fab -f tests/fabfile.py run_tests_in_firefox"

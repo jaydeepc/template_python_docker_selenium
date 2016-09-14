@@ -1,9 +1,9 @@
 import unittest
 
 from selenium import webdriver
-from your_project.functions.base_page import BasePage
+from functions.functions.base_page import BasePage
 
-from functions.functions import WebdriverConfig
+from ..config.config import WebdriverConfig
 
 
 class BaseTest(unittest.TestCase):
@@ -22,6 +22,7 @@ class BaseTest(unittest.TestCase):
             raise Exception("Browser is not accepted")
 
         cls.driver = webdriver.Remote(hub_url, capability)
+
         cls.base_page = BasePage(cls.driver, "http://52.2.223.255")
 
     @classmethod

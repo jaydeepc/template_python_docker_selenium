@@ -24,11 +24,11 @@ class install(_install):
 
 
 # Normal setup stuff
-setup(name='name',
+setup(name='functions',
       version='0.1',
       description='Functions used by the tests',
       author='JD',
       author_email='jaydeepc@thuoghtworks.com',
-      packages=['name'],
+      packages=['functions'],
       cmdclass={'install': install},
       zip_safe=False)
