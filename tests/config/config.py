@@ -1,5 +1,5 @@
-from base_config import BaseConfig
-import os
+from tests.config.base_config import BaseConfig
+
 
 class WebdriverConfig(BaseConfig):
 

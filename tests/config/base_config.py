@@ -1,15 +1,12 @@
-import ConfigParser
+import configparser
 import os
 
 
 class BaseConfig(object):
 
     def read_config(self, cfg_file):
-        print "************"
-        print cfg_file
-        print "************"
         if os.path.isfile(cfg_file):
-            config = ConfigParser.ConfigParser()
+            config = configparser.ConfigParser()
             config.read(cfg_file)
         else:
             raise Exception("Config file is not found.")

@@ -4,3 +4,4 @@ fabric
 pytest-json
 pytest-html
 pytest-xdist
+configparser

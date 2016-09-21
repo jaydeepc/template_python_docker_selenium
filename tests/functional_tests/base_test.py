@@ -1,7 +1,7 @@
 import unittest
 
 from selenium import webdriver
-from functions.functions.base_page import BasePage
+from functions import BasePage
 
 from ..config.config import WebdriverConfig
 
@@ -21,9 +21,10 @@ class BaseTest(unittest.TestCase):
         else:
             raise Exception("Browser is not accepted")
 
-        cls.driver = webdriver.Remote(hub_url, capability)
-
-        cls.base_page = BasePage(cls.driver, "http://52.2.223.255")
+        cls.driver = webdriver.Chrome()
+        cls.driver.implicitly_wait(5)
+        cls.base_url = "http://52.2.223.255/opportunities"
+        cls.base_page = BasePage(cls.driver, cls.base_url)
 
     @classmethod
     def tearDownClass(cls):
