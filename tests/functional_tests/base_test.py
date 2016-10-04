@@ -4,7 +4,7 @@ from selenium import webdriver
 from functions import BasePage
 
 from ..config.config import WebdriverConfig
-
+from api.paa_api_clients.opportunity import OpportunityClient
 
 class BaseTest(unittest.TestCase):
 
@@ -12,7 +12,10 @@ class BaseTest(unittest.TestCase):
     def setUpClass(cls):
         webdriver_config = WebdriverConfig()
         hub_url = webdriver_config.hub_url()
+        cls.base_url = "http://52.2.223.255"
+
         browser = webdriver_config.browser()
+        cls.opportunity_api_client = OpportunityClient(cls.base_url)
 
         if browser == "firefox":
             capability = webdriver.DesiredCapabilities.FIREFOX
@@ -22,8 +25,6 @@ class BaseTest(unittest.TestCase):
             raise Exception("Browser is not accepted")
 
         cls.driver = webdriver.Chrome()
-        cls.driver.implicitly_wait(5)
-        cls.base_url = "http://52.2.223.255/opportunities"
         cls.base_page = BasePage(cls.driver, cls.base_url)
 
     @classmethod

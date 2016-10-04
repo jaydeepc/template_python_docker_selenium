@@ -3,6 +3,7 @@ from selenium.webdriver import ActionChains
 
 from . import opportunity_page
 from . import productivity_chart_page
+from .common import Common
 
 
 class CreateOpportunityPage:
@@ -35,6 +36,7 @@ class CreateOpportunityPage:
         self.action.click(self.ele_select_opportunity_type)
         self.action.perform()
         available_options_in_type_dropdown = self.driver.find_elements_by_css_selector("#{0} ul li".format(self.select_opportunity_type))
+        time.sleep(2)
         self.click_on_dropdown_option(available_options_in_type_dropdown, opportunity_type)
 
         self.ele_txt_opportunity_name.clear()
@@ -43,9 +45,8 @@ class CreateOpportunityPage:
         return CreateOpportunityPage(self.driver)
 
     def click_on_dropdown_option(self, available_options_in_dropdown, option_to_be_clicked):
-        for option in available_options_in_dropdown:
-            if option.text == option_to_be_clicked:
-                option.click()
+        Common.click_on_dropdown_option(available_options_in_dropdown, option_to_be_clicked)
+        return CreateOpportunityPage(self.driver)
 
     def click_on_create(self):
         self.ele_btn_create.click()
