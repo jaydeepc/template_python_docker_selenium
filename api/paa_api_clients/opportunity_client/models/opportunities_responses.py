@@ -1,24 +1,24 @@
 import json
 
-from cafe.engine.models.base import AutoMarshallingModel
+from marshest.marshmodels import MarshModel
 
 
-class Opportunities(AutoMarshallingModel):
+class Opportunities(MarshModel):
 
     def __init__(self, opportunities):
         self.opportunities = opportunities
 
     @classmethod
-    def _json_to_obj(cls, serialized_str):
+    def _json_to_object(cls, serialized_str):
         json_dict = json.loads(serialized_str.decode("utf-8"))
         opportunities = None
         if 'opportunities' in json_dict:
-            opportunities = Opportunity._list_to_obj(json_dict['opportunities'])
+            opportunities = Opportunity._list_to_object(json_dict['opportunities'])
 
         return Opportunities(opportunities=opportunities)
 
 
-class Opportunity:
+class Opportunity(MarshModel):
 
     def __init__(self, cdt_id, cdt_name, id, metrics, modified_date, name, status, type):
         self.cdt_id = cdt_id
@@ -30,12 +30,13 @@ class Opportunity:
         self.status = status
         self.type = type
 
+
     @classmethod
-    def _json_to_obj(cls, serialized_str):
+    def _json_to_object(cls, serialized_str):
         json_dict = serialized_str
         metrics = None
         if 'metrics' in json_dict:
-            metrics = Metrics._list_to_obj(json_dict['metrics'])
+            metrics = Metrics._list_to_object(json_dict['metrics'])
 
         response = Opportunity(cdt_id=json_dict.get("cdt_id"), cdt_name=json_dict.get("cdt_name"),
                                id=json_dict.get("id"), metrics=metrics,
@@ -44,10 +45,10 @@ class Opportunity:
         return response
 
     @classmethod
-    def _list_to_obj(cls, dict_list):
+    def _list_to_object(cls, dict_list):
         items = []
         for item in dict_list:
-            item_obj = cls._json_to_obj(item)
+            item_obj = cls._json_to_object(item)
             items.append(item_obj)
         return items
 
@@ -69,7 +70,7 @@ class Metrics:
         self.valueType = valueType
 
     @classmethod
-    def _json_to_obj(cls, serialized_str):
+    def _json_to_object(cls, serialized_str):
         json_dict = serialized_str
 
         response = Metrics(actualValue=json_dict.get("actualValue"), changeInValue=json_dict.get("changeInValue"), code=json_dict.get("code"),
@@ -81,30 +82,30 @@ class Metrics:
 
 
     @classmethod
-    def _list_to_obj(cls, dict_list):
+    def _list_to_object(cls, dict_list):
         items = []
         for item in dict_list:
-            item_obj = cls._json_to_obj(item)
+            item_obj = cls._json_to_object(item)
             items.append(item_obj)
         return items
 
 
-class CreateOpportunity:
+class CreateOpportunity(MarshModel):
     def __init__(self, opportunity, status):
         self.opportunity = opportunity
         self.status = status
 
     @classmethod
-    def _json_to_obj(cls, serialized_str):
+    def _json_to_object(cls, serialized_str):
         json_dict = json.loads(serialized_str.decode("utf-8"))
         opportunity = None
         if 'Opportunity' in json_dict:
-            opportunity = CreatedOpportunity._json_to_obj(json_dict['Opportunity'])
+            opportunity = CreatedOpportunity._json_to_object(json_dict['Opportunity'])
 
         return CreateOpportunity(opportunity=opportunity, status=json_dict.get("Status"))
 
 
-class CreatedOpportunity:
+class CreatedOpportunity(MarshModel):
     def __init__(self, cdt_id, submitted, id, details, create_date, name, submitted_by, submitted_date, type):
         self.cdt_id = cdt_id
         self.submitted = submitted
@@ -117,17 +118,26 @@ class CreatedOpportunity:
         self.submitted_date = submitted_date
 
     @classmethod
-    def _json_to_obj(cls, serialized_str):
-        json_dict = serialized_str
+    def _json_to_object(cls, serialized_str):
+
+        if type(serialized_str) is dict:
+            json_dict = serialized_str
+        else:
+            json_dict = json.loads(serialized_str.decode("utf-8"))
+
         details = None
         if 'details' in json_dict:
-            details = Details._list_to_obj(json_dict['details'])
+            details = Details._list_to_object(json_dict.get('details'))
 
-        response = CreatedOpportunity(cdt_id=json_dict.get("cdt_id"), submitted=json_dict.get("submitted"),
-                               id=json_dict.get("id"), details=details,
-                               create_date=json_dict.get("create_date"), name=json_dict.get("name"),
-                               submitted_by=json_dict.get("submitted_by"), submitted_date=json_dict.get("submitted_date"),
-                               type=json_dict.get("type"))
+        try:
+            response = CreatedOpportunity(cdt_id=json_dict.get("cdtId"), submitted=json_dict.get("submitted"),
+                                   id=json_dict.get("id"), details=details,
+                                   create_date=json_dict.get("create_date"), name=json_dict.get("name"),
+                                   submitted_by=json_dict.get("submitted_by"), submitted_date=json_dict.get("submitted_date"),
+                                   type=json_dict.get("type"))
+        except:
+            return response
+
         return response
 
 
@@ -139,32 +149,32 @@ class Details:
         self.simulation_id = simulation_id
 
     @classmethod
-    def _json_to_obj(cls, serialized_str):
+    def _json_to_object(cls, serialized_str):
         json_dict = serialized_str
         metrics = None
         if 'metrics' in json_dict:
-            metrics = Metrics._list_to_obj(json_dict['metrics'])
+            metrics = Metrics._list_to_object(json_dict['metrics'])
 
         response = Details(market_id=json_dict.get("market_id"), metrics=metrics, simulation_id=json_dict.get("simulation_id"))
         return response
 
 
     @classmethod
-    def _list_to_obj(cls, dict_list):
+    def _list_to_object(cls, dict_list):
         items = []
         for item in dict_list:
-            item_obj = cls._json_to_obj(item)
+            item_obj = cls._json_to_object(item)
             items.append(item_obj)
         return items
 
 
-class DeletedOpportunity:
+class DeletedOpportunity(MarshModel):
     def __init__(self, opportunity_ids_successfully_deactivated, status):
         self.opportunity_ids_successfully_deactivated = opportunity_ids_successfully_deactivated
         self.status = status
 
     @classmethod
-    def _json_to_obj(cls, serialized_str):
+    def _json_to_object(cls, serialized_str):
         json_dict = json.loads(serialized_str.decode("utf-8"))
 
         return DeletedOpportunity(opportunity_ids_successfully_deactivated=json_dict.get("opportunity_ids_successfully_deactivated"),

@@ -1,18 +1,18 @@
 import json
 
-from cafe.engine.models.base import AutoMarshallingModel
+from marshest.marshmodels import MarshModel
 
 
-class FilterRequest(AutoMarshallingModel):
+class FilterRequest(MarshModel):
 
     def __init__(self, type, filter):
         self.type = type
         self.filter = filter
 
-    def _obj_to_json(self):
+    def _object_to_json(self):
         body = {
             "type":self.type,
             "filter":self.filter
         }
-        body = self._remove_empty_values(body)
+
         return json.dumps(body)

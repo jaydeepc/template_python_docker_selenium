@@ -6,7 +6,7 @@ from .base_test import BaseTest
 class HomePageTests(BaseTest):
 
     @classmethod
-    def setUpClass(cls):
+    def setUp(cls):
         super(HomePageTests, cls).setUpClass()
         cls.created_opportunity = cls.opportunity_api_client.create_opportunity("Ice Cream",
                                                                                 "MANUAL",

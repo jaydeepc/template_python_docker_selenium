@@ -4,7 +4,7 @@ from selenium import webdriver
 from functions import BasePage
 
 from ..config.config import WebdriverConfig
-from api.paa_api_clients.opportunity import OpportunityClient
+from api.paa_api_clients.opportunity_client.opportunity_client import OpportunityAPIClient
 
 class BaseTest(unittest.TestCase):
 
@@ -15,7 +15,7 @@ class BaseTest(unittest.TestCase):
         cls.base_url = "http://52.2.223.255"
 
         browser = webdriver_config.browser()
-        cls.opportunity_api_client = OpportunityClient(cls.base_url)
+        cls.opportunity_api_client = OpportunityAPIClient(cls.base_url)
 
         if browser == "firefox":
             capability = webdriver.DesiredCapabilities.FIREFOX

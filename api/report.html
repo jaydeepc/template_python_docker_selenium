@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Test Report</title>
+    <link href="assets/style.css" rel="stylesheet" type="text/css"/></head>
+  <body>
+    <script>/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function toArray(iter) {
+    if (iter === null) {
+        return null;
+    }
+    return Array.prototype.slice.call(iter);
+}
+
+function find(selector, elem) {
+    if (!elem) {
+        elem = document;
+    }
+    return elem.querySelector(selector);
+}
+
+function find_all(selector, elem) {
+    if (!elem) {
+        elem = document;
+    }
+    return toArray(elem.querySelectorAll(selector));
+}
+
+function sort_column(elem) {
+    toggle_sort_states(elem);
+    var colIndex = toArray(elem.parentNode.childNodes).indexOf(elem);
+    var key;
+    if (elem.classList.contains('numeric')) {
+        key = key_num;
+    } else if (elem.classList.contains('result')) {
+        key = key_result;
+    } else {
+        key = key_alpha;
+    }
+    sort_table(elem, key(colIndex));
+}
+
+function show_all_extras() {
+    find_all('.col-result').forEach(show_extras);
+}
+
+function hide_all_extras() {
+    find_all('.col-result').forEach(hide_extras);
+}
+
+function show_extras(colresult_elem) {
+    var extras = colresult_elem.parentNode.nextElementSibling;
+    var expandcollapse = colresult_elem.firstElementChild;
+    extras.classList.remove("collapsed");
+    expandcollapse.classList.remove("expander");
+    expandcollapse.classList.add("collapser");
+}
+
+function hide_extras(colresult_elem) {
+    var extras = colresult_elem.parentNode.nextElementSibling;
+    var expandcollapse = colresult_elem.firstElementChild;
+    extras.classList.add("collapsed");
+    expandcollapse.classList.remove("collapser");
+    expandcollapse.classList.add("expander");
+}
+
+function show_filters() {
+    var filter_items = document.getElementsByClassName('filter');
+    for (var i = 0; i < filter_items.length; i++)
+        filter_items[i].hidden = false;
+}
+
+function add_collapse() {
+    // Add links for show/hide all
+    var resulttable = find('table#results-table');
+    var showhideall = document.createElement("p");
+    showhideall.innerHTML = '<a href="javascript:show_all_extras()">Show all details</a> / ' +
+                            '<a href="javascript:hide_all_extras()">Hide all details</a>';
+    resulttable.parentElement.insertBefore(showhideall, resulttable);
+
+    // Add show/hide link to each result
+    find_all('.col-result').forEach(function(elem) {
+        var extras = elem.parentNode.nextElementSibling;
+        var expandcollapse = document.createElement("span");
+        if (elem.innerHTML === 'Passed') {
+            extras.classList.add("collapsed");
+            expandcollapse.classList.add("expander");
+        } else {
+            expandcollapse.classList.add("collapser");
+        }
+        elem.appendChild(expandcollapse);
+
+        elem.addEventListener("click", function(event) {
+            if (event.currentTarget.parentNode.nextElementSibling.classList.contains("collapsed")) {
+                show_extras(event.currentTarget);
+            } else {
+                hide_extras(event.currentTarget);
+            }
+        });
+    })
+}
+addEventListener("DOMContentLoaded", function() {
+    reset_sort_headers();
+
+    add_collapse();
+
+    show_filters();
+
+    toggle_sort_states(find('.initial-sort'));
+
+    find_all('.sortable').forEach(function(elem) {
+        elem.addEventListener("click",
+                              function(event) {
+                                  sort_column(elem);
+                              }, false)
+    });
+
+});
+
+function sort_table(clicked, key_func) {
+    var rows = find_all('.results-table-row');
+    var reversed = !clicked.classList.contains('asc');
+    var sorted_rows = sort(rows, key_func, reversed);
+    /* Whole table is removed here because browsers acts much slower
+     * when appending existing elements.
+     */
+    var thead = document.getElementById("results-table-head");
+    document.getElementById('results-table').remove();
+    var parent = document.createElement("table");
+    parent.id = "results-table";
+    parent.appendChild(thead);
+    sorted_rows.forEach(function(elem) {
+        parent.appendChild(elem);
+    });
+    document.getElementsByTagName("BODY")[0].appendChild(parent);
+}
+
+function sort(items, key_func, reversed) {
+    var sort_array = items.map(function(item, i) {
+        return [key_func(item), i];
+    });
+    var multiplier = reversed ? -1 : 1;
+
+    sort_array.sort(function(a, b) {
+        var key_a = a[0];
+        var key_b = b[0];
+        return multiplier * (key_a >= key_b ? 1 : -1);
+    });
+
+    return sort_array.map(function(item) {
+        var index = item[1];
+        return items[index];
+    });
+}
+
+function key_alpha(col_index) {
+    return function(elem) {
+        return elem.childNodes[1].childNodes[col_index].firstChild.data.toLowerCase();
+    };
+}
+
+function key_num(col_index) {
+    return function(elem) {
+        return parseFloat(elem.childNodes[1].childNodes[col_index].firstChild.data);
+    };
+}
+
+function key_result(col_index) {
+    return function(elem) {
+        var strings = ['Error', 'Failed', 'Rerun', 'XFailed', 'XPassed',
+                       'Skipped', 'Passed'];
+        return strings.indexOf(elem.childNodes[1].childNodes[col_index].firstChild.data);
+    };
+}
+
+function reset_sort_headers() {
+    find_all('.sort-icon').forEach(function(elem) {
+        elem.parentNode.removeChild(elem);
+    });
+    find_all('.sortable').forEach(function(elem) {
+        var icon = document.createElement("div");
+        icon.className = "sort-icon";
+        icon.textContent = "vvv";
+        elem.insertBefore(icon, elem.firstChild);
+        elem.classList.remove("desc", "active");
+        elem.classList.add("asc", "inactive");
+    });
+}
+
+function toggle_sort_states(elem) {
+    //if active, toggle between asc and desc
+    if (elem.classList.contains('active')) {
+        elem.classList.toggle('asc');
+        elem.classList.toggle('desc');
+    }
+
+    //if inactive, reset all other functions and add ascending active
+    if (elem.classList.contains('inactive')) {
+        reset_sort_headers();
+        elem.classList.remove('inactive');
+        elem.classList.add('active');
+    }
+}
+
+function is_all_rows_hidden(value) {
+  return value.hidden == false;
+}
+
+function filter_table(elem) {
+    var outcome_att = "data-test-result";
+    var outcome = elem.getAttribute(outcome_att);
+    class_outcome = outcome + " results-table-row";
+    var outcome_rows = document.getElementsByClassName(class_outcome);
+
+    for(var i = 0; i < outcome_rows.length; i++){
+        outcome_rows[i].hidden = !elem.checked;
+    }
+
+    var rows = find_all('.results-table-row').filter(is_all_rows_hidden);
+    var all_rows_hidden = rows.length == 0 ? true : false;
+    var not_found_message = document.getElementById("not-found-message");
+    not_found_message.hidden = !all_rows_hidden;
+}
+</script>
+    <p>Report generated on 26-Oct-2016 at 14:39:38</p>
+    <h2>Environment</h2>
+    <table id="environment">
+      <tr>
+        <td>Platform</td>
+        <td>Darwin-15.3.0-x86_64-i386-64bit</td></tr>
+      <tr>
+        <td>Python</td>
+        <td>3.5.2</td></tr></table>
+    <h2>Summary</h2>
+    <p>24 tests ran in 121.84 seconds. </p>
+    <p class="filter" hidden="true">(Un)check the boxes to filter the results.</p><input checked="true" class="filter" data-test-result="passed" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="passed">10 passed</span>, <input checked="true" class="filter" data-test-result="skipped" disabled="true" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="skipped">0 skipped</span>, <input checked="true" class="filter" data-test-result="failed" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="failed">14 failed</span>, <input checked="true" class="filter" data-test-result="error" disabled="true" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="error">0 errors</span>, <input checked="true" class="filter" data-test-result="xfailed" disabled="true" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="xfailed">0 expected failures</span>, <input checked="true" class="filter" data-test-result="xpassed" disabled="true" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="xpassed">0 unexpected passes</span>
+    <h2>Results</h2>
+    <table id="results-table">
+      <thead id="results-table-head">
+        <tr>
+          <th class="sortable result initial-sort" col="result">Result</th>
+          <th class="sortable" col="name">Test</th>
+          <th class="sortable numeric" col="duration">Duration</th>
+          <th>Links</th></tr>
+        <tr hidden="true" id="not-found-message">
+          <th colspan="5">No results found. Try to check the filters</th></tr></thead>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/test_api_home_page.py::HomePageAPITests::test_user_can_not_create_a_new_opportunity_with_blank_name</td>
+          <td class="col-duration">10.84</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">self = &lt;api.tests.test_api_home_page.HomePageAPITests testMethod=test_user_can_not_create_a_new_opportunity_with_blank_name&gt;<br/><br/>    @pytest.mark.home_page_api<br/>    def test_user_can_not_create_a_new_opportunity_with_blank_name(self):<br/>        cdt_type = &quot;1&quot;<br/>        opportunity_type = &quot;MANUAL&quot;<br/>        opportunity_name = &quot;&quot;<br/>        response = self.opportunity_api_client.create_opportunity(cdt_type, opportunity_type, opportunity_name)<br/>        self.assertEquals(400, response.status_code, msg=&quot;The response code returned does not match expected value.&quot;<br/>                                                         &quot;Expected: {0}&quot;<br/>&gt;                                                        &quot;Actual: {1}&quot;.format(400, response.status_code))<br/><span class="error">E       AssertionError: 400 != 200 : The response code returned does not match expected value.Expected: 400Actual: 200</span><br/><br/>tests/test_api_home_page.py:126: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/test_api_home_page.py::HomePageAPITests::test_user_can_not_create_a_new_opportunity_with_invalid_cdt_type</td>
+          <td class="col-duration">0.70</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">self = &lt;api.tests.test_api_home_page.HomePageAPITests testMethod=test_user_can_not_create_a_new_opportunity_with_invalid_cdt_type&gt;<br/><br/>    @pytest.mark.home_page_api<br/>    def test_user_can_not_create_a_new_opportunity_with_invalid_cdt_type(self):<br/>        cdt_type = &quot;abcd&quot;<br/>        opportunity_type = &quot;MANUAL&quot;<br/>        opportunity_name = &quot;api_created_opportunity_{0}&quot;.format(random.randint(1, 100))<br/>        response = self.opportunity_api_client.create_opportunity(cdt_type, opportunity_type, opportunity_name)<br/>        self.assertEquals(400, response.status_code, msg=&quot;The response code returned does not match expected value.&quot;<br/>                                                         &quot;Expected: {0}&quot;<br/>&gt;                                                        &quot;Actual: {1}&quot;.format(400, response.status_code))<br/><span class="error">E       AssertionError: 400 != 200 : The response code returned does not match expected value.Expected: 400Actual: 200</span><br/><br/>tests/test_api_home_page.py:106: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/test_api_home_page.py::HomePageAPITests::test_user_can_not_create_a_new_opportunity_with_invalid_opportunity_type</td>
+          <td class="col-duration">10.67</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">self = &lt;api.tests.test_api_home_page.HomePageAPITests testMethod=test_user_can_not_create_a_new_opportunity_with_invalid_opportunity_type&gt;<br/><br/>    @pytest.mark.home_page_api<br/>    def test_user_can_not_create_a_new_opportunity_with_invalid_opportunity_type(self):<br/>        cdt_type = &quot;1&quot;<br/>        opportunity_type = &quot;abcd&quot;<br/>        opportunity_name = &quot;api_created_opportunity_{0}&quot;.format(random.randint(1, 100))<br/>        response = self.opportunity_api_client.create_opportunity(cdt_type, opportunity_type, opportunity_name)<br/>        self.assertEquals(400, response.status_code, msg=&quot;The response code returned does not match expected value.&quot;<br/>                                                         &quot;Expected: {0}&quot;<br/>&gt;                                                        &quot;Actual: {1}&quot;.format(400, response.status_code))<br/><span class="error">E       AssertionError: 400 != 200 : The response code returned does not match expected value.Expected: 400Actual: 200</span><br/><br/>tests/test_api_home_page.py:116: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/test_api_home_page.py::HomePageAPITests::test_user_can_not_delete_an_opportunity_with_invalid_id</td>
+          <td class="col-duration">0.62</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">self = &lt;api.tests.test_api_home_page.HomePageAPITests testMethod=test_user_can_not_delete_an_opportunity_with_invalid_id&gt;<br/><br/>    @pytest.mark.home_page_api<br/>    def test_user_can_not_delete_an_opportunity_with_invalid_id(self):<br/>        delete_opp = self.opportunity_api_client.delete_opportunity([&quot;abcd&quot;])<br/>        self.assertEquals(400, delete_opp.status_code, msg=&quot;The response code returned does not match expected value.&quot;<br/>                                                         &quot;Expected: {0}&quot;<br/>&gt;                                                        &quot;Actual: {1}&quot;.format(400, delete_opp.status_code))<br/><span class="error">E       AssertionError: 400 != 500 : The response code returned does not match expected value.Expected: 400Actual: 500</span><br/><br/>tests/test_api_home_page.py:148: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/test_api_home_page.py::HomePageAPITests::test_user_can_not_delete_an_opportunity_with_nonexistent_id</td>
+          <td class="col-duration">0.62</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">self = &lt;api.tests.test_api_home_page.HomePageAPITests testMethod=test_user_can_not_delete_an_opportunity_with_nonexistent_id&gt;<br/><br/>    @pytest.mark.home_page_api<br/>    def test_user_can_not_delete_an_opportunity_with_nonexistent_id(self):<br/>        delete_opp = self.opportunity_api_client.delete_opportunity([9999])<br/>        self.assertEquals(404, delete_opp.status_code, msg=&quot;The response code returned does not match expected value.&quot;<br/>                                                         &quot;Expected: {0}&quot;<br/>&gt;                                                        &quot;Actual: {1}&quot;.format(404, delete_opp.status_code))<br/><span class="error">E       AssertionError: 404 != 200 : The response code returned does not match expected value.Expected: 404Actual: 200</span><br/><br/>tests/test_api_home_page.py:155: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/test_api_home_page.py::HomePageAPITests::test_user_can_not_filter_with_invalid_cdt_id</td>
+          <td class="col-duration">0.62</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">self = &lt;api.tests.test_api_home_page.HomePageAPITests testMethod=test_user_can_not_filter_with_invalid_cdt_id&gt;<br/><br/>    @pytest.mark.home_page_api<br/>    def test_user_can_not_filter_with_invalid_cdt_id(self):<br/>        filter_cdt_ids = [&quot;abcd&quot;]<br/>        response = self.opportunity_api_client.get_filtered_opportunities(type=&quot;CDT&quot;, filter=filter_cdt_ids)<br/>        self.assertEquals(400, response.status_code, msg=&quot;The response code returned does not match expected value.&quot;<br/>                                                         &quot;Expected: {0}&quot;<br/>&gt;                                                        &quot;Actual: {1}&quot;.format(400, response.status_code))<br/><span class="error">E       AssertionError: 400 != 200 : The response code returned does not match expected value.Expected: 400Actual: 200</span><br/><br/>tests/test_api_home_page.py:55: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/test_api_home_page.py::HomePageAPITests::test_user_can_not_filter_with_invalid_cdt_type</td>
+          <td class="col-duration">0.62</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">self = &lt;api.tests.test_api_home_page.HomePageAPITests testMethod=test_user_can_not_filter_with_invalid_cdt_type&gt;<br/><br/>    @pytest.mark.home_page_api<br/>    def test_user_can_not_filter_with_invalid_cdt_type(self):<br/>        filter_cdt_ids = [&quot;1&quot;]<br/>        response = self.opportunity_api_client.get_filtered_opportunities(type=&quot;abcd&quot;, filter=filter_cdt_ids)<br/>        self.assertEquals(400, response.status_code, msg=&quot;The response code returned does not match expected value.&quot;<br/>                                                         &quot;Expected: {0}&quot;<br/>&gt;                                                        &quot;Actual: {1}&quot;.format(400, response.status_code))<br/><span class="error">E       AssertionError: 400 != 200 : The response code returned does not match expected value.Expected: 400Actual: 200</span><br/><br/>tests/test_api_home_page.py:63: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/test_api_productivity_page.py::ProductivityPageAPITests::test_user_can_not_get_cdt_tree_for_invalid_tree_id</td>
+          <td class="col-duration">0.67</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">self = &lt;api.tests.test_api_productivity_page.ProductivityPageAPITests testMethod=test_user_can_not_get_cdt_tree_for_invalid_tree_id&gt;<br/><br/>    @pytest.mark.productivity_page_api<br/>    def test_user_can_not_get_cdt_tree_for_invalid_tree_id(self):<br/>        details = self.assortment_api_client.get_cdt_tree(&quot;abcd&quot;)<br/>        self.assertEquals(400, details.status_code, msg=&quot;The response code returned does not match expected value.&quot;<br/>                                                         &quot;Expected: {0}&quot;<br/>&gt;                                                        &quot;Actual: {1}&quot;.format(400, details.status_code))<br/><span class="error">E       AssertionError: 400 != 404 : The response code returned does not match expected value.Expected: 400Actual: 404</span><br/><br/>tests/test_api_productivity_page.py:158: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/test_api_productivity_page.py::ProductivityPageAPITests::test_user_can_not_get_cdt_tree_for_non_existent_tree_id</td>
+          <td class="col-duration">0.75</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">self = &lt;api.tests.test_api_productivity_page.ProductivityPageAPITests testMethod=test_user_can_not_get_cdt_tree_for_non_existent_tree_id&gt;<br/><br/>    @pytest.mark.productivity_page_api<br/>    def test_user_can_not_get_cdt_tree_for_non_existent_tree_id(self):<br/>        details = self.assortment_api_client.get_cdt_tree(999999)<br/>        self.assertEquals(404, details.status_code, msg=&quot;The response code returned does not match expected value.&quot;<br/>                                                         &quot;Expected: {0}&quot;<br/>&gt;                                                        &quot;Actual: {1}&quot;.format(404, details.status_code))<br/><span class="error">E       AssertionError: 404 != 500 : The response code returned does not match expected value.Expected: 404Actual: 500</span><br/><br/>tests/test_api_productivity_page.py:165: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/test_api_productivity_page.py::ProductivityPageAPITests::test_user_can_not_retieve_products_for_invalid_simulation_id</td>
+          <td class="col-duration">0.62</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">self = &lt;json.decoder.JSONDecoder object at 0x1032d9a90&gt;<br/>s = &#x27;&lt;html&gt;\n  &lt;head&gt;\n    &lt;title&gt;Internal Server Error&lt;/title&gt;\n  &lt;/head&gt;\n  &lt;body&gt;\n    &lt;h1&gt;&lt;p&gt;Internal Server Error&lt;/p&gt;&lt;/h1&gt;\n    \n  &lt;/body&gt;\n&lt;/html&gt;\n&#x27;, idx = 0<br/><br/>    def raw_decode(self, s, idx=0):<br/>        &quot;&quot;&quot;Decode a JSON document from ``s`` (a ``str`` beginning with<br/>            a JSON document) and return a 2-tuple of the Python<br/>            representation and the index in ``s`` where the document ended.<br/>    <br/>            This can be used to decode a JSON document from a string that may<br/>            have extraneous data at the end.<br/>    <br/>            &quot;&quot;&quot;<br/>        try:<br/>&gt;           obj, end = self.scan_once(s, idx)<br/><span class="error">E           StopIteration: 0</span><br/><br/>/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/json/decoder.py:355: StopIteration<br/><br/>During handling of the above exception, another exception occurred:<br/><br/>cls = &lt;class &#x27;api.paa_api_clients.assortment_client.models.products_responses.Products&#x27;&gt;<br/>serialized_str = b&#x27;&lt;html&gt;\n  &lt;head&gt;\n    &lt;title&gt;Internal Server Error&lt;/title&gt;\n  &lt;/head&gt;\n  &lt;body&gt;\n    &lt;h1&gt;&lt;p&gt;Internal Server Error&lt;/p&gt;&lt;/h1&gt;\n    \n  &lt;/body&gt;\n&lt;/html&gt;\n&#x27;, format = &#x27;json&#x27;<br/><br/>    @classmethod<br/>    def deserialize(cls, serialized_str, format):<br/>        model_obj = None<br/>        if serialized_str and len(serialized_str) &gt; 0:<br/>            try:<br/>                deserialize_function = &#x27;_{0}_to_object&#x27;.format(format)<br/>&gt;               model_obj = getattr(cls, deserialize_function)(serialized_str)<br/><br/>../venv3/lib/python3.5/site-packages/marshest/marshmodels.py:19: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>cls = &lt;class &#x27;api.paa_api_clients.assortment_client.models.products_responses.Products&#x27;&gt;<br/>serialized_str = b&#x27;&lt;html&gt;\n  &lt;head&gt;\n    &lt;title&gt;Internal Server Error&lt;/title&gt;\n  &lt;/head&gt;\n  &lt;body&gt;\n    &lt;h1&gt;&lt;p&gt;Internal Server Error&lt;/p&gt;&lt;/h1&gt;\n    \n  &lt;/body&gt;\n&lt;/html&gt;\n&#x27;<br/><br/>    @classmethod<br/>    def _json_to_object(cls, serialized_str):<br/>&gt;       json_dict = json.loads(serialized_str.decode(&quot;utf-8&quot;))<br/><br/>paa_api_clients/assortment_client/models/products_responses.py:22: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>s = &#x27;&lt;html&gt;\n  &lt;head&gt;\n    &lt;title&gt;Internal Server Error&lt;/title&gt;\n  &lt;/head&gt;\n  &lt;body&gt;\n    &lt;h1&gt;&lt;p&gt;Internal Server Error&lt;/p&gt;&lt;/h1&gt;\n    \n  &lt;/body&gt;\n&lt;/html&gt;\n&#x27;, encoding = None, cls = None<br/>object_hook = None, parse_float = None, parse_int = None, parse_constant = None, object_pairs_hook = None, kw = {}<br/><br/>    def loads(s, encoding=None, cls=None, object_hook=None, parse_float=None,<br/>            parse_int=None, parse_constant=None, object_pairs_hook=None, **kw):<br/>        &quot;&quot;&quot;Deserialize ``s`` (a ``str`` instance containing a JSON<br/>        document) to a Python object.<br/>    <br/>        ``object_hook`` is an optional function that will be called with the<br/>        result of any object literal decode (a ``dict``). The return value of<br/>        ``object_hook`` will be used instead of the ``dict``. This feature<br/>        can be used to implement custom decoders (e.g. JSON-RPC class hinting).<br/>    <br/>        ``object_pairs_hook`` is an optional function that will be called with the<br/>        result of any object literal decoded with an ordered list of pairs.  The<br/>        return value of ``object_pairs_hook`` will be used instead of the ``dict``.<br/>        This feature can be used to implement custom decoders that rely on the<br/>        order that the key and value pairs are decoded (for example,<br/>        collections.OrderedDict will remember the order of insertion). If<br/>        ``object_hook`` is also defined, the ``object_pairs_hook`` takes priority.<br/>    <br/>        ``parse_float``, if specified, will be called with the string<br/>        of every JSON float to be decoded. By default this is equivalent to<br/>        float(num_str). This can be used to use another datatype or parser<br/>        for JSON floats (e.g. decimal.Decimal).<br/>    <br/>        ``parse_int``, if specified, will be called with the string<br/>        of every JSON int to be decoded. By default this is equivalent to<br/>        int(num_str). This can be used to use another datatype or parser<br/>        for JSON integers (e.g. float).<br/>    <br/>        ``parse_constant``, if specified, will be called with one of the<br/>        following strings: -Infinity, Infinity, NaN, null, true, false.<br/>        This can be used to raise an exception if invalid JSON numbers<br/>        are encountered.<br/>    <br/>        To use a custom ``JSONDecoder`` subclass, specify it with the ``cls``<br/>        kwarg; otherwise ``JSONDecoder`` is used.<br/>    <br/>        The ``encoding`` argument is ignored and deprecated.<br/>    <br/>        &quot;&quot;&quot;<br/>        if not isinstance(s, str):<br/>            raise TypeError(&#x27;the JSON object must be str, not {!r}&#x27;.format(<br/>                                s.__class__.__name__))<br/>        if s.startswith(u&#x27;\ufeff&#x27;):<br/>            raise JSONDecodeError(&quot;Unexpected UTF-8 BOM (decode using utf-8-sig)&quot;,<br/>                                  s, 0)<br/>        if (cls is None and object_hook is None and<br/>                parse_int is None and parse_float is None and<br/>                parse_constant is None and object_pairs_hook is None and not kw):<br/>&gt;           return _default_decoder.decode(s)<br/><br/>/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/json/__init__.py:319: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;json.decoder.JSONDecoder object at 0x1032d9a90&gt;<br/>s = &#x27;&lt;html&gt;\n  &lt;head&gt;\n    &lt;title&gt;Internal Server Error&lt;/title&gt;\n  &lt;/head&gt;\n  &lt;body&gt;\n    &lt;h1&gt;&lt;p&gt;Internal Server Error&lt;/p&gt;&lt;/h1&gt;\n    \n  &lt;/body&gt;\n&lt;/html&gt;\n&#x27;<br/>_w = &lt;built-in method match of _sre.SRE_Pattern object at 0x1032f6030&gt;<br/><br/>    def decode(self, s, _w=WHITESPACE.match):<br/>        &quot;&quot;&quot;Return the Python representation of ``s`` (a ``str`` instance<br/>            containing a JSON document).<br/>    <br/>            &quot;&quot;&quot;<br/>&gt;       obj, end = self.raw_decode(s, idx=_w(s, 0).end())<br/><br/>/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/json/decoder.py:339: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;json.decoder.JSONDecoder object at 0x1032d9a90&gt;<br/>s = &#x27;&lt;html&gt;\n  &lt;head&gt;\n    &lt;title&gt;Internal Server Error&lt;/title&gt;\n  &lt;/head&gt;\n  &lt;body&gt;\n    &lt;h1&gt;&lt;p&gt;Internal Server Error&lt;/p&gt;&lt;/h1&gt;\n    \n  &lt;/body&gt;\n&lt;/html&gt;\n&#x27;, idx = 0<br/><br/>    def raw_decode(self, s, idx=0):<br/>        &quot;&quot;&quot;Decode a JSON document from ``s`` (a ``str`` beginning with<br/>            a JSON document) and return a 2-tuple of the Python<br/>            representation and the index in ``s`` where the document ended.<br/>    <br/>            This can be used to decode a JSON document from a string that may<br/>            have extraneous data at the end.<br/>    <br/>            &quot;&quot;&quot;<br/>        try:<br/>            obj, end = self.scan_once(s, idx)<br/>        except StopIteration as err:<br/>&gt;           raise JSONDecodeError(&quot;Expecting value&quot;, s, err.value) from None<br/><span class="error">E           json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)</span><br/><br/>/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/json/decoder.py:357: JSONDecodeError<br/><br/>During handling of the above exception, another exception occurred:<br/><br/>self = &lt;api.tests.test_api_productivity_page.ProductivityPageAPITests testMethod=test_user_can_not_retieve_products_for_invalid_simulation_id&gt;<br/><br/>    @pytest.mark.productivity_page_api<br/>    def test_user_can_not_retieve_products_for_invalid_simulation_id(self):<br/>&gt;       products_details = self.assortment_api_client.get_products_by_simulation_id(&quot;abcd&quot;)<br/><br/>tests/test_api_productivity_page.py:120: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/>paa_api_clients/assortment_client/assortment_client.py:21: in get_products_by_simulation_id<br/>    kwargs=kwargs)<br/>../venv3/lib/python3.5/site-packages/marshest/marshclients.py:110: in request<br/>    self.format_for_deserializing)<br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>cls = &lt;class &#x27;api.paa_api_clients.assortment_client.models.products_responses.Products&#x27;&gt;<br/>serialized_str = b&#x27;&lt;html&gt;\n  &lt;head&gt;\n    &lt;title&gt;Internal Server Error&lt;/title&gt;\n  &lt;/head&gt;\n  &lt;body&gt;\n    &lt;h1&gt;&lt;p&gt;Internal Server Error&lt;/p&gt;&lt;/h1&gt;\n    \n  &lt;/body&gt;\n&lt;/html&gt;\n&#x27;, format = &#x27;json&#x27;<br/><br/>    @classmethod<br/>    def deserialize(cls, serialized_str, format):<br/>        model_obj = None<br/>        if serialized_str and len(serialized_str) &gt; 0:<br/>            try:<br/>                deserialize_function = &#x27;_{0}_to_object&#x27;.format(format)<br/>                model_obj = getattr(cls, deserialize_function)(serialized_str)<br/>            except:<br/>&gt;               raise Exception(&quot;Failed to Deserialize&quot;)<br/><span class="error">E               Exception: Failed to Deserialize</span><br/><br/>../venv3/lib/python3.5/site-packages/marshest/marshmodels.py:21: Exception<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/test_api_productivity_page.py::ProductivityPageAPITests::test_user_can_not_retieve_products_for_non_existent_simulation_id</td>
+          <td class="col-duration">0.57</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">self = &lt;json.decoder.JSONDecoder object at 0x1032d9a90&gt;<br/>s = &#x27;&lt;html&gt;\n  &lt;head&gt;\n    &lt;title&gt;Internal Server Error&lt;/title&gt;\n  &lt;/head&gt;\n  &lt;body&gt;\n    &lt;h1&gt;&lt;p&gt;Internal Server Error&lt;/p&gt;&lt;/h1&gt;\n    \n  &lt;/body&gt;\n&lt;/html&gt;\n&#x27;, idx = 0<br/><br/>    def raw_decode(self, s, idx=0):<br/>        &quot;&quot;&quot;Decode a JSON document from ``s`` (a ``str`` beginning with<br/>            a JSON document) and return a 2-tuple of the Python<br/>            representation and the index in ``s`` where the document ended.<br/>    <br/>            This can be used to decode a JSON document from a string that may<br/>            have extraneous data at the end.<br/>    <br/>            &quot;&quot;&quot;<br/>        try:<br/>&gt;           obj, end = self.scan_once(s, idx)<br/><span class="error">E           StopIteration: 0</span><br/><br/>/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/json/decoder.py:355: StopIteration<br/><br/>During handling of the above exception, another exception occurred:<br/><br/>cls = &lt;class &#x27;api.paa_api_clients.assortment_client.models.products_responses.Products&#x27;&gt;<br/>serialized_str = b&#x27;&lt;html&gt;\n  &lt;head&gt;\n    &lt;title&gt;Internal Server Error&lt;/title&gt;\n  &lt;/head&gt;\n  &lt;body&gt;\n    &lt;h1&gt;&lt;p&gt;Internal Server Error&lt;/p&gt;&lt;/h1&gt;\n    \n  &lt;/body&gt;\n&lt;/html&gt;\n&#x27;, format = &#x27;json&#x27;<br/><br/>    @classmethod<br/>    def deserialize(cls, serialized_str, format):<br/>        model_obj = None<br/>        if serialized_str and len(serialized_str) &gt; 0:<br/>            try:<br/>                deserialize_function = &#x27;_{0}_to_object&#x27;.format(format)<br/>&gt;               model_obj = getattr(cls, deserialize_function)(serialized_str)<br/><br/>../venv3/lib/python3.5/site-packages/marshest/marshmodels.py:19: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>cls = &lt;class &#x27;api.paa_api_clients.assortment_client.models.products_responses.Products&#x27;&gt;<br/>serialized_str = b&#x27;&lt;html&gt;\n  &lt;head&gt;\n    &lt;title&gt;Internal Server Error&lt;/title&gt;\n  &lt;/head&gt;\n  &lt;body&gt;\n    &lt;h1&gt;&lt;p&gt;Internal Server Error&lt;/p&gt;&lt;/h1&gt;\n    \n  &lt;/body&gt;\n&lt;/html&gt;\n&#x27;<br/><br/>    @classmethod<br/>    def _json_to_object(cls, serialized_str):<br/>&gt;       json_dict = json.loads(serialized_str.decode(&quot;utf-8&quot;))<br/><br/>paa_api_clients/assortment_client/models/products_responses.py:22: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>s = &#x27;&lt;html&gt;\n  &lt;head&gt;\n    &lt;title&gt;Internal Server Error&lt;/title&gt;\n  &lt;/head&gt;\n  &lt;body&gt;\n    &lt;h1&gt;&lt;p&gt;Internal Server Error&lt;/p&gt;&lt;/h1&gt;\n    \n  &lt;/body&gt;\n&lt;/html&gt;\n&#x27;, encoding = None, cls = None<br/>object_hook = None, parse_float = None, parse_int = None, parse_constant = None, object_pairs_hook = None, kw = {}<br/><br/>    def loads(s, encoding=None, cls=None, object_hook=None, parse_float=None,<br/>            parse_int=None, parse_constant=None, object_pairs_hook=None, **kw):<br/>        &quot;&quot;&quot;Deserialize ``s`` (a ``str`` instance containing a JSON<br/>        document) to a Python object.<br/>    <br/>        ``object_hook`` is an optional function that will be called with the<br/>        result of any object literal decode (a ``dict``). The return value of<br/>        ``object_hook`` will be used instead of the ``dict``. This feature<br/>        can be used to implement custom decoders (e.g. JSON-RPC class hinting).<br/>    <br/>        ``object_pairs_hook`` is an optional function that will be called with the<br/>        result of any object literal decoded with an ordered list of pairs.  The<br/>        return value of ``object_pairs_hook`` will be used instead of the ``dict``.<br/>        This feature can be used to implement custom decoders that rely on the<br/>        order that the key and value pairs are decoded (for example,<br/>        collections.OrderedDict will remember the order of insertion). If<br/>        ``object_hook`` is also defined, the ``object_pairs_hook`` takes priority.<br/>    <br/>        ``parse_float``, if specified, will be called with the string<br/>        of every JSON float to be decoded. By default this is equivalent to<br/>        float(num_str). This can be used to use another datatype or parser<br/>        for JSON floats (e.g. decimal.Decimal).<br/>    <br/>        ``parse_int``, if specified, will be called with the string<br/>        of every JSON int to be decoded. By default this is equivalent to<br/>        int(num_str). This can be used to use another datatype or parser<br/>        for JSON integers (e.g. float).<br/>    <br/>        ``parse_constant``, if specified, will be called with one of the<br/>        following strings: -Infinity, Infinity, NaN, null, true, false.<br/>        This can be used to raise an exception if invalid JSON numbers<br/>        are encountered.<br/>    <br/>        To use a custom ``JSONDecoder`` subclass, specify it with the ``cls``<br/>        kwarg; otherwise ``JSONDecoder`` is used.<br/>    <br/>        The ``encoding`` argument is ignored and deprecated.<br/>    <br/>        &quot;&quot;&quot;<br/>        if not isinstance(s, str):<br/>            raise TypeError(&#x27;the JSON object must be str, not {!r}&#x27;.format(<br/>                                s.__class__.__name__))<br/>        if s.startswith(u&#x27;\ufeff&#x27;):<br/>            raise JSONDecodeError(&quot;Unexpected UTF-8 BOM (decode using utf-8-sig)&quot;,<br/>                                  s, 0)<br/>        if (cls is None and object_hook is None and<br/>                parse_int is None and parse_float is None and<br/>                parse_constant is None and object_pairs_hook is None and not kw):<br/>&gt;           return _default_decoder.decode(s)<br/><br/>/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/json/__init__.py:319: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;json.decoder.JSONDecoder object at 0x1032d9a90&gt;<br/>s = &#x27;&lt;html&gt;\n  &lt;head&gt;\n    &lt;title&gt;Internal Server Error&lt;/title&gt;\n  &lt;/head&gt;\n  &lt;body&gt;\n    &lt;h1&gt;&lt;p&gt;Internal Server Error&lt;/p&gt;&lt;/h1&gt;\n    \n  &lt;/body&gt;\n&lt;/html&gt;\n&#x27;<br/>_w = &lt;built-in method match of _sre.SRE_Pattern object at 0x1032f6030&gt;<br/><br/>    def decode(self, s, _w=WHITESPACE.match):<br/>        &quot;&quot;&quot;Return the Python representation of ``s`` (a ``str`` instance<br/>            containing a JSON document).<br/>    <br/>            &quot;&quot;&quot;<br/>&gt;       obj, end = self.raw_decode(s, idx=_w(s, 0).end())<br/><br/>/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/json/decoder.py:339: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;json.decoder.JSONDecoder object at 0x1032d9a90&gt;<br/>s = &#x27;&lt;html&gt;\n  &lt;head&gt;\n    &lt;title&gt;Internal Server Error&lt;/title&gt;\n  &lt;/head&gt;\n  &lt;body&gt;\n    &lt;h1&gt;&lt;p&gt;Internal Server Error&lt;/p&gt;&lt;/h1&gt;\n    \n  &lt;/body&gt;\n&lt;/html&gt;\n&#x27;, idx = 0<br/><br/>    def raw_decode(self, s, idx=0):<br/>        &quot;&quot;&quot;Decode a JSON document from ``s`` (a ``str`` beginning with<br/>            a JSON document) and return a 2-tuple of the Python<br/>            representation and the index in ``s`` where the document ended.<br/>    <br/>            This can be used to decode a JSON document from a string that may<br/>            have extraneous data at the end.<br/>    <br/>            &quot;&quot;&quot;<br/>        try:<br/>            obj, end = self.scan_once(s, idx)<br/>        except StopIteration as err:<br/>&gt;           raise JSONDecodeError(&quot;Expecting value&quot;, s, err.value) from None<br/><span class="error">E           json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)</span><br/><br/>/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/json/decoder.py:357: JSONDecodeError<br/><br/>During handling of the above exception, another exception occurred:<br/><br/>self = &lt;api.tests.test_api_productivity_page.ProductivityPageAPITests testMethod=test_user_can_not_retieve_products_for_non_existent_simulation_id&gt;<br/><br/>    @pytest.mark.productivity_page_api<br/>    def test_user_can_not_retieve_products_for_non_existent_simulation_id(self):<br/>&gt;       products_details = self.assortment_api_client.get_products_by_simulation_id(&quot;99999&quot;)<br/><br/>tests/test_api_productivity_page.py:127: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/>paa_api_clients/assortment_client/assortment_client.py:21: in get_products_by_simulation_id<br/>    kwargs=kwargs)<br/>../venv3/lib/python3.5/site-packages/marshest/marshclients.py:110: in request<br/>    self.format_for_deserializing)<br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>cls = &lt;class &#x27;api.paa_api_clients.assortment_client.models.products_responses.Products&#x27;&gt;<br/>serialized_str = b&#x27;&lt;html&gt;\n  &lt;head&gt;\n    &lt;title&gt;Internal Server Error&lt;/title&gt;\n  &lt;/head&gt;\n  &lt;body&gt;\n    &lt;h1&gt;&lt;p&gt;Internal Server Error&lt;/p&gt;&lt;/h1&gt;\n    \n  &lt;/body&gt;\n&lt;/html&gt;\n&#x27;, format = &#x27;json&#x27;<br/><br/>    @classmethod<br/>    def deserialize(cls, serialized_str, format):<br/>        model_obj = None<br/>        if serialized_str and len(serialized_str) &gt; 0:<br/>            try:<br/>                deserialize_function = &#x27;_{0}_to_object&#x27;.format(format)<br/>                model_obj = getattr(cls, deserialize_function)(serialized_str)<br/>            except:<br/>&gt;               raise Exception(&quot;Failed to Deserialize&quot;)<br/><span class="error">E               Exception: Failed to Deserialize</span><br/><br/>../venv3/lib/python3.5/site-packages/marshest/marshmodels.py:21: Exception<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/test_api_productivity_page.py::ProductivityPageAPITests::test_user_can_not_retrieve_the_opportunity_details_for_invalid_opportunity</td>
+          <td class="col-duration">0.55</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">self = &lt;json.decoder.JSONDecoder object at 0x1032d9a90&gt;<br/>s = &#x27;&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 3.2 Final//EN&quot;&gt;\n&lt;title&gt;404 Not Found&lt;/title&gt;\n&lt;h1&gt;Not Found&lt;/h1&gt;\n&lt;p&gt;The requested URL was not found on the server.  If you entered the URL manually please check your spelling and try again.&lt;/p&gt;\n&#x27;<br/>idx = 0<br/><br/>    def raw_decode(self, s, idx=0):<br/>        &quot;&quot;&quot;Decode a JSON document from ``s`` (a ``str`` beginning with<br/>            a JSON document) and return a 2-tuple of the Python<br/>            representation and the index in ``s`` where the document ended.<br/>    <br/>            This can be used to decode a JSON document from a string that may<br/>            have extraneous data at the end.<br/>    <br/>            &quot;&quot;&quot;<br/>        try:<br/>&gt;           obj, end = self.scan_once(s, idx)<br/><span class="error">E           StopIteration: 0</span><br/><br/>/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/json/decoder.py:355: StopIteration<br/><br/>During handling of the above exception, another exception occurred:<br/><br/>cls = &lt;class &#x27;api.paa_api_clients.opportunity_client.models.opportunities_responses.CreatedOpportunity&#x27;&gt;<br/>serialized_str = b&#x27;&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 3.2 Final//EN&quot;&gt;\n&lt;title&gt;404 Not Found&lt;/title&gt;\n&lt;h1&gt;Not Found&lt;/h1&gt;\n&lt;p&gt;The requested URL was not found on the server.  If you entered the URL manually please check your spelling and try again.&lt;/p&gt;\n&#x27;<br/>format = &#x27;json&#x27;<br/><br/>    @classmethod<br/>    def deserialize(cls, serialized_str, format):<br/>        model_obj = None<br/>        if serialized_str and len(serialized_str) &gt; 0:<br/>            try:<br/>                deserialize_function = &#x27;_{0}_to_object&#x27;.format(format)<br/>&gt;               model_obj = getattr(cls, deserialize_function)(serialized_str)<br/><br/>../venv3/lib/python3.5/site-packages/marshest/marshmodels.py:19: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>cls = &lt;class &#x27;api.paa_api_clients.opportunity_client.models.opportunities_responses.CreatedOpportunity&#x27;&gt;<br/>serialized_str = b&#x27;&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 3.2 Final//EN&quot;&gt;\n&lt;title&gt;404 Not Found&lt;/title&gt;\n&lt;h1&gt;Not Found&lt;/h1&gt;\n&lt;p&gt;The requested URL was not found on the server.  If you entered the URL manually please check your spelling and try again.&lt;/p&gt;\n&#x27;<br/><br/>    @classmethod<br/>    def _json_to_object(cls, serialized_str):<br/>    <br/>        if type(serialized_str) is dict:<br/>            json_dict = serialized_str<br/>        else:<br/>&gt;           json_dict = json.loads(serialized_str.decode(&quot;utf-8&quot;))<br/><br/>paa_api_clients/opportunity_client/models/opportunities_responses.py:126: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>s = &#x27;&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 3.2 Final//EN&quot;&gt;\n&lt;title&gt;404 Not Found&lt;/title&gt;\n&lt;h1&gt;Not Found&lt;/h1&gt;\n&lt;p&gt;The requested URL was not found on the server.  If you entered the URL manually please check your spelling and try again.&lt;/p&gt;\n&#x27;<br/>encoding = None, cls = None, object_hook = None, parse_float = None, parse_int = None, parse_constant = None, object_pairs_hook = None, kw = {}<br/><br/>    def loads(s, encoding=None, cls=None, object_hook=None, parse_float=None,<br/>            parse_int=None, parse_constant=None, object_pairs_hook=None, **kw):<br/>        &quot;&quot;&quot;Deserialize ``s`` (a ``str`` instance containing a JSON<br/>        document) to a Python object.<br/>    <br/>        ``object_hook`` is an optional function that will be called with the<br/>        result of any object literal decode (a ``dict``). The return value of<br/>        ``object_hook`` will be used instead of the ``dict``. This feature<br/>        can be used to implement custom decoders (e.g. JSON-RPC class hinting).<br/>    <br/>        ``object_pairs_hook`` is an optional function that will be called with the<br/>        result of any object literal decoded with an ordered list of pairs.  The<br/>        return value of ``object_pairs_hook`` will be used instead of the ``dict``.<br/>        This feature can be used to implement custom decoders that rely on the<br/>        order that the key and value pairs are decoded (for example,<br/>        collections.OrderedDict will remember the order of insertion). If<br/>        ``object_hook`` is also defined, the ``object_pairs_hook`` takes priority.<br/>    <br/>        ``parse_float``, if specified, will be called with the string<br/>        of every JSON float to be decoded. By default this is equivalent to<br/>        float(num_str). This can be used to use another datatype or parser<br/>        for JSON floats (e.g. decimal.Decimal).<br/>    <br/>        ``parse_int``, if specified, will be called with the string<br/>        of every JSON int to be decoded. By default this is equivalent to<br/>        int(num_str). This can be used to use another datatype or parser<br/>        for JSON integers (e.g. float).<br/>    <br/>        ``parse_constant``, if specified, will be called with one of the<br/>        following strings: -Infinity, Infinity, NaN, null, true, false.<br/>        This can be used to raise an exception if invalid JSON numbers<br/>        are encountered.<br/>    <br/>        To use a custom ``JSONDecoder`` subclass, specify it with the ``cls``<br/>        kwarg; otherwise ``JSONDecoder`` is used.<br/>    <br/>        The ``encoding`` argument is ignored and deprecated.<br/>    <br/>        &quot;&quot;&quot;<br/>        if not isinstance(s, str):<br/>            raise TypeError(&#x27;the JSON object must be str, not {!r}&#x27;.format(<br/>                                s.__class__.__name__))<br/>        if s.startswith(u&#x27;\ufeff&#x27;):<br/>            raise JSONDecodeError(&quot;Unexpected UTF-8 BOM (decode using utf-8-sig)&quot;,<br/>                                  s, 0)<br/>        if (cls is None and object_hook is None and<br/>                parse_int is None and parse_float is None and<br/>                parse_constant is None and object_pairs_hook is None and not kw):<br/>&gt;           return _default_decoder.decode(s)<br/><br/>/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/json/__init__.py:319: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;json.decoder.JSONDecoder object at 0x1032d9a90&gt;<br/>s = &#x27;&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 3.2 Final//EN&quot;&gt;\n&lt;title&gt;404 Not Found&lt;/title&gt;\n&lt;h1&gt;Not Found&lt;/h1&gt;\n&lt;p&gt;The requested URL was not found on the server.  If you entered the URL manually please check your spelling and try again.&lt;/p&gt;\n&#x27;<br/>_w = &lt;built-in method match of _sre.SRE_Pattern object at 0x1032f6030&gt;<br/><br/>    def decode(self, s, _w=WHITESPACE.match):<br/>        &quot;&quot;&quot;Return the Python representation of ``s`` (a ``str`` instance<br/>            containing a JSON document).<br/>    <br/>            &quot;&quot;&quot;<br/>&gt;       obj, end = self.raw_decode(s, idx=_w(s, 0).end())<br/><br/>/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/json/decoder.py:339: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;json.decoder.JSONDecoder object at 0x1032d9a90&gt;<br/>s = &#x27;&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 3.2 Final//EN&quot;&gt;\n&lt;title&gt;404 Not Found&lt;/title&gt;\n&lt;h1&gt;Not Found&lt;/h1&gt;\n&lt;p&gt;The requested URL was not found on the server.  If you entered the URL manually please check your spelling and try again.&lt;/p&gt;\n&#x27;<br/>idx = 0<br/><br/>    def raw_decode(self, s, idx=0):<br/>        &quot;&quot;&quot;Decode a JSON document from ``s`` (a ``str`` beginning with<br/>            a JSON document) and return a 2-tuple of the Python<br/>            representation and the index in ``s`` where the document ended.<br/>    <br/>            This can be used to decode a JSON document from a string that may<br/>            have extraneous data at the end.<br/>    <br/>            &quot;&quot;&quot;<br/>        try:<br/>            obj, end = self.scan_once(s, idx)<br/>        except StopIteration as err:<br/>&gt;           raise JSONDecodeError(&quot;Expecting value&quot;, s, err.value) from None<br/><span class="error">E           json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)</span><br/><br/>/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/json/decoder.py:357: JSONDecodeError<br/><br/>During handling of the above exception, another exception occurred:<br/><br/>self = &lt;api.tests.test_api_productivity_page.ProductivityPageAPITests testMethod=test_user_can_not_retrieve_the_opportunity_details_for_invalid_opportunity&gt;<br/><br/>    @pytest.mark.productivity_page_api1<br/>    def test_user_can_not_retrieve_the_opportunity_details_for_invalid_opportunity(self):<br/>&gt;       opportunity_details = self.opportunity_api_client.get_opportunity_details(&quot;abcd&quot;)<br/><br/>tests/test_api_productivity_page.py:113: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/>paa_api_clients/opportunity_client/opportunity_client.py:60: in get_opportunity_details<br/>    kwargs=kwargs)<br/>../venv3/lib/python3.5/site-packages/marshest/marshclients.py:110: in request<br/>    self.format_for_deserializing)<br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>cls = &lt;class &#x27;api.paa_api_clients.opportunity_client.models.opportunities_responses.CreatedOpportunity&#x27;&gt;<br/>serialized_str = b&#x27;&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 3.2 Final//EN&quot;&gt;\n&lt;title&gt;404 Not Found&lt;/title&gt;\n&lt;h1&gt;Not Found&lt;/h1&gt;\n&lt;p&gt;The requested URL was not found on the server.  If you entered the URL manually please check your spelling and try again.&lt;/p&gt;\n&#x27;<br/>format = &#x27;json&#x27;<br/><br/>    @classmethod<br/>    def deserialize(cls, serialized_str, format):<br/>        model_obj = None<br/>        if serialized_str and len(serialized_str) &gt; 0:<br/>            try:<br/>                deserialize_function = &#x27;_{0}_to_object&#x27;.format(format)<br/>                model_obj = getattr(cls, deserialize_function)(serialized_str)<br/>            except:<br/>&gt;               raise Exception(&quot;Failed to Deserialize&quot;)<br/><span class="error">E               Exception: Failed to Deserialize</span><br/><br/>../venv3/lib/python3.5/site-packages/marshest/marshmodels.py:21: Exception<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/test_api_productivity_page.py::ProductivityPageAPITests::test_user_can_not_run_simulation_for_invalid_product_ids</td>
+          <td class="col-duration">1.88</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">self = &lt;api.tests.test_api_productivity_page.ProductivityPageAPITests testMethod=test_user_can_not_run_simulation_for_invalid_product_ids&gt;<br/><br/>    @pytest.mark.productivity_page_api<br/>    def test_user_can_not_run_simulation_for_invalid_product_ids(self):<br/>        products_details = self.assortment_api_client.run_simulation(self.cdt_type, [&quot;abcd&quot;, &quot;efgh&quot;])<br/>        self.assertEquals(400, products_details.status_code, msg=&quot;The response code returned does not match expected value.&quot;<br/>                                                         &quot;Expected: {0}&quot;<br/>&gt;                                                        &quot;Actual: {1}&quot;.format(400, products_details.status_code))<br/><span class="error">E       AssertionError: 400 != 500 : The response code returned does not match expected value.Expected: 400Actual: 500</span><br/><br/>tests/test_api_productivity_page.py:137: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">tests/test_api_productivity_page.py::ProductivityPageAPITests::test_user_can_not_run_simulation_for_non_existent_product_ids</td>
+          <td class="col-duration">10.54</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">self = &lt;api.tests.test_api_productivity_page.ProductivityPageAPITests testMethod=test_user_can_not_run_simulation_for_non_existent_product_ids&gt;<br/><br/>    @pytest.mark.productivity_page_api<br/>    def test_user_can_not_run_simulation_for_non_existent_product_ids(self):<br/>        products_details = self.assortment_api_client.run_simulation(self.cdt_type, [99999, 9999999])<br/>        self.assertEquals(404, products_details.status_code, msg=&quot;The response code returned does not match expected value.&quot;<br/>                                                         &quot;Expected: {0}&quot;<br/>&gt;                                                        &quot;Actual: {1}&quot;.format(404, products_details.status_code))<br/><span class="error">E       AssertionError: 404 != 200 : The response code returned does not match expected value.Expected: 404Actual: 200</span><br/><br/>tests/test_api_productivity_page.py:144: AssertionError<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_api_home_page.py::HomePageAPITests::test_opportunity_filter</td>
+          <td class="col-duration">0.63</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">----------------------------- Captured stdout call -----------------------------<br/>1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_api_home_page.py::HomePageAPITests::test_user_can_create_a_new_opportunity</td>
+          <td class="col-duration">11.73</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_api_home_page.py::HomePageAPITests::test_user_can_delete_an_opportunity</td>
+          <td class="col-duration">1.98</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_api_home_page.py::HomePageAPITests::test_user_can_retrieve_all_opportunities</td>
+          <td class="col-duration">12.74</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_api_productivity_page.py::ProductivityPageAPITests::test_user_can_not_retrieve_the_opportunity_details_for_non_existing_opportunity</td>
+          <td class="col-duration">0.54</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_api_productivity_page.py::ProductivityPageAPITests::test_user_can_not_run_simulation_for_invalid_cdt_id</td>
+          <td class="col-duration">0.62</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_api_productivity_page.py::ProductivityPageAPITests::test_user_can_retrieve_the_opportunity_details</td>
+          <td class="col-duration">0.62</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="log">----------------------------- Captured stdout call -----------------------------<br/>{&apos;submitted&apos;: False, &apos;type&apos;: &apos;MANUAL&apos;, &apos;details&apos;: [&lt;api.paa_api_clients.opportunity_client.models.opportunities_responses.Details object at 0x10812cc18&gt;], &apos;create_date&apos;: None, &apos;submitted_by&apos;: None, &apos;id&apos;: 324, &apos;name&apos;: &apos;api_created_opportunity_84&apos;, &apos;cdt_id&apos;: &apos;1&apos;, &apos;submitted_date&apos;: None}
+</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_api_productivity_page.py::ProductivityPageAPITests::test_user_transfer_analysis_of_profit_is_correct</td>
+          <td class="col-duration">13.90</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_api_productivity_page.py::ProductivityPageAPITests::test_user_transfer_analysis_of_revenue_is_correct</td>
+          <td class="col-duration">13.55</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="empty log">No log output captured.</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">tests/test_api_productivity_page.py::ProductivityPageAPITests::test_user_transfer_analysis_of_volume_is_correct</td>
+          <td class="col-duration">13.76</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="5">
+            <div class="empty log">No log output captured.</div></td></tr></tbody></table></body></html>
